@@ -12,7 +12,7 @@
     }
 
     .with-menu {
-        margin-left: 280px; /* Menü genişliği kadar */
+        margin-left: 280px;
     }
 
     .full-width {
@@ -28,14 +28,12 @@
         <i class="bi bi-list fs-3"></i>
     </button>
     <div class="d-flex vh-100">
-        
-        <!-- Sol Menü -->
+         
         <div class="position-fixed top-0 start-0 h-100 bg-white shadow-sm p-3 transition-menu"
              style="width: 280px; z-index: 1050; transform:@(isMenuOpen ? "translateX(0)" : "translateX(-100%)");"
              @onclick:stopPropagation="true">
  
-
-            <!-- Kullanıcı -->
+              
             <div class="d-flex align-items-center mt-5 pt-3 ms-4">
                 <i class="bi bi-person-circle fs-2 me-2 text-secondary"></i>
                 <div>
@@ -46,8 +44,7 @@
                 </div>
             </div>
 
-
-            <!-- Menü -->
+             
             <ul class="nav flex-column">
                 <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-house-door me-2"></i>Ana Sayfa</a></li>
                 <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-calendar me-2"></i>Takvim</a></li>
@@ -57,8 +54,7 @@
                 <li class="nav-item"><a class="nav-link" href="/home" #"><i class="bi bi-layers me-2"></i>CLM</a></li>
                 <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-gear me-2"></i>Ayarlar</a></li>
             </ul>
-
-            <!-- Alt -->
+             
             <div class="mt-auto pt-4">
                 <div class="mt-2">
                     <a href="#" class="text-danger fw-bold" @onclick="Logout"><i class="bi bi-power me-1"></i>Çıkış Yap</a>
@@ -67,8 +63,7 @@
             </div>
         </div>
 
-
-        <!-- İçerik -->
+         
         <div class="@BodyContainerClass">
             @Body
         </div>

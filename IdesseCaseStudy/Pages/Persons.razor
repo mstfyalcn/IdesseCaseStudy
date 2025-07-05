@@ -16,8 +16,7 @@
 
     @if (!string.IsNullOrWhiteSpace(filterText))
     {
-        <button type="button" class="btn btn-sm btn-light position-absolute end-0 top-50 translate-middle-y me-2"
-                style="z-index: 2;"
+        <button type="button" class="btn btn-sm btn-light position-absolute end-0 top-50 translate-middle-y me-2 clear-filter-btn"
                 @onclick="ClearFilter">
             ×
         </button>
@@ -104,6 +103,7 @@ else
 
                             @if (!string.IsNullOrEmpty(card.PropertySegment))
                             {
+
                                 <span class="badge bg-warning text-dark ms-2">@card.PropertySegment</span>
                             }
                         </div>
