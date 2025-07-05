@@ -1,0 +1,93 @@
+﻿@page "/login"
+@using IdesseCaseStudy.Models
+@using IdesseCaseStudy.Services
+@using Microsoft.AspNetCore.Components.Forms
+ 
+@inject IInfiniApi InfiniApi
+@inject NavigationManager Nav
+@inject UserStateService UserState
+
+<div class="d-flex justify-content-center align-items-center vh-100 bg-light">
+    <div class="p-5 rounded shadow bg-white" style="width: 100%; max-width: 400px;">
+        <h4 class="fw-bold text-center mb-4 text-dark">Giriş Yap</h4>
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label text-muted">Kullanıcı Adı</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <InputText @bind-Value="loginModel.Username" class="form-control"  />
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted">Şifre</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="••••••••" />
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="text-danger mb-3">@errorMessage</div>
+            }
+
+            <button type="submit" class="btn btn-danger w-100 fw-bold">Giriş</button>
+        </EditForm>
+    </div>
+</div>
+
+<div class="text-center text-muted mt-4 small">
+    v5.7.2
+    <div class="mt-2">
+        <button class="btn btn-light px-4 py-2">
+            <i class="bi bi-gear me-1"></i> Uygulama Ayarları
+        </button>
+    </div>
+</div>
+
+
+@code {
+    private LoginRequest loginModel = new();
+    private string errorMessage;
+
+    private async Task HandleValidSubmit()
+    {
+        errorMessage = string.Empty;
+
+        try
+        {
+            var loginResponse = await InfiniApi.Login(loginModel);
+
+            if (loginResponse.IsSuccessStatusCode && loginResponse.Content?.success == true)
+            {
+                var userResp = await InfiniApi.GetUserMobile();
+
+                if (userResp.IsSuccessStatusCode && userResp.Content?.data != null)
+                {
+                    UserState.SetUser(userResp.Content.data);
+                    Nav.NavigateTo("/persons"); 
+                }
+                else
+                {
+                    errorMessage = "Kullanıcı bilgisi alınamadı!";
+                }
+            }
+            else
+            {
+                errorMessage = "Giriş başarısız!";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Hata: {ex.Message}";
+        }
+    }
+}

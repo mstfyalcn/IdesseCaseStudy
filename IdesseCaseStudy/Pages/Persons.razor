@@ -1,0 +1,293 @@
+﻿@page "/persons"
+@inject IInfiniApi InfiniApi
+@inject IJSRuntime JS
+@using IdesseCaseStudy.Models
+@using IdesseCaseStudy.Services
+
+<h3 class="text-center mb-1">Kişiler</h3>
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-success" @onclick="OpenModal">
+        + Yeni Kişi Ekle
+    </button>
+</div>
+<div class="position-relative mb-3">
+    <input class="form-control pe-5" placeholder="Filtrele (Ad, Ünvan, Branş, Kurum)"
+           @bind="filterText" @bind:event="oninput" />
+
+    @if (!string.IsNullOrWhiteSpace(filterText))
+    {
+        <button type="button" class="btn btn-sm btn-light position-absolute end-0 top-50 translate-middle-y me-2"
+                style="z-index: 2;"
+                @onclick="ClearFilter">
+            ×
+        </button>
+    }
+</div>
+<div class="modal fade @(isModalOpen ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Kişi Ekle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label>Ad Soyad</label>
+                    <input class="form-control" @bind="newCardName" />
+                </div>
+                 <div class="mb-3">
+                    <label>Ünvan Kodu</label>
+                    <input class="form-control" @bind="newCardTitleCode" />
+                </div>
+                <div class="mb-3">
+                    <label>Bölüm</label>
+                    <input class="form-control" @bind="newCardProfessionCode" />
+                </div>
+                <div class="mb-3">
+                    <label>Lokasyon</label>
+                    <input class="form-control" @bind="newLocationName" />
+                </div>
+                 
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseModal">Vazgeç</button>
+                <button class="btn btn-primary" @onclick="AddNewPerson">Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center text-muted">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+        <p class="mt-2">Veriler yükleniyor...</p>
+    </div>
+}
+else if (cards == null || !cards.Any())
+{
+    <div class="alert alert-warning">Kayıt bulunamadı.</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var card in cards)
+        {
+
+            <div class="list-group-item mb-2 shadow-sm rounded">
+                <div class="d-flex">
+                     
+                    <div class="d-flex align-items-center" style="width: 35px;">
+                        @if (card.CardIsMale)
+                        {
+                            <i class="bi bi-gender-male text-primary fs-4"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-gender-female text-danger fs-4"></i>
+                        }
+                    </div>
+                     
+                    <div class="flex-fill">
+                        <span class="badge bg-info ms-2">@card.CardTitleCode</span>
+                        <strong> @card.CardName</strong>
+                        <span class="text-danger ms-2">(@card.CardProfessionCode)</span>
+                        <div class="text-muted">@card.LocationName</div>
+
+                        <div class="list-group-item mb-2 shadow-sm rounded @(card.ThisMonthPlanCount == 0 ? "bg-light" : "")"
+                             style="font-size: 0.85rem;">
+                            Bu Ay: @card.ThisMonthPlanCount / @card.ThisMonthPlanCount |
+                            YTD: @card.YtdPlanCount / @card.YtdPlanCount |
+                            Ay Ort. @card.RealizedCountAvg
+
+                            @if (!string.IsNullOrEmpty(card.PropertySegment))
+                            {
+                                <span class="badge bg-warning text-dark ms-2">@card.PropertySegment</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        }
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <button class="btn btn-outline-secondary"
+                @onclick="PreviousPage"
+                disabled="@(currentPage == 1)">
+            ← Geri
+        </button>
+
+        <span class="mx-2">
+            Sayfa <strong>@currentPage</strong> / <strong>@TotalPages</strong>
+        </span>
+
+        <button class="btn btn-outline-primary"
+                @onclick="NextPage"
+                disabled="@(currentPage* pageSize >= allCards.Count)">
+            İleri →
+        </button>
+    </div>
+}
+
+
+@code {
+
+    bool isModalOpen = false;
+    bool isLoading = false;
+
+    string newCardName;
+    string newCardTitleCode;
+    string newCardProfessionCode;
+    string newLocationName;
+
+    int TotalPages => (int)Math.Ceiling((double)filteredCards.Count / pageSize);
+    int currentPage = 1;
+    int pageSize = 20;
+
+    List<Card> filteredCards = new(); 
+    List<Card> allCards = new();
+    List<Card> cards = new();
+    
+    
+    private string _filterText = string.Empty;
+    private string filterText
+    {
+        get => _filterText;
+        set
+        {
+            _filterText = value;
+            currentPage = 1;
+            UpdateVisibleCards();
+        }
+    }
+
+    private string GetSegmentBadgeColor(string segment)
+    {
+        return segment switch
+        {
+            "GOLD" => "bg-warning text-dark",
+            "SILVER" => "bg-secondary text-white",
+            "BRONZE" => "bg-dark text-white",
+            _ => "bg-light text-dark"
+        };
+    }
+
+    private void UpdateVisibleCards()
+    {
+        filteredCards = allCards;
+
+        if (!string.IsNullOrWhiteSpace(filterText))
+        {
+            filteredCards = allCards
+                .Where(c =>
+                    (c.CardName?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.CardTitleCode?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.CardProfessionCode?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.LocationName?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false)
+                ).ToList();
+        }
+
+        var maxPage = Math.Max(1, (int)Math.Ceiling((double)filteredCards.Count / pageSize));
+        if (currentPage > maxPage)
+        {
+            currentPage = maxPage;
+        }
+
+        cards = filteredCards
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private void OpenModal()
+    {
+        isModalOpen = true;
+    }
+
+    private void CloseModal()
+    {
+        isModalOpen = false;
+        newCardName = string.Empty;
+        newCardTitleCode = string.Empty;
+        newCardProfessionCode = string.Empty;
+        newLocationName = string.Empty;
+    }
+
+    private void AddNewPerson()
+    {
+        if (!string.IsNullOrWhiteSpace(newCardName))
+        {
+            var newCard = new Card
+            {
+                CardId = new Random().Next(100000, 999999), 
+                CardName = newCardName,
+                CardTitleCode = newCardTitleCode,  
+                CardProfessionCode = newCardProfessionCode,
+                LocationName = newLocationName,
+                ThisMonthPlanCount = 0,
+                YtdPlanCount = 0,
+                RealizedCountAvg = 0,
+                PropertySegment = ""
+            };
+
+            allCards.Insert(0, newCard);  
+            UpdateVisibleCards();
+        }
+
+        CloseModal();
+    }
+   
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCards();
+        UpdateVisibleCards();  
+    }
+    
+    private async Task LoadCards()
+    {
+        isLoading = true;
+        var request = new CardListRequest { Limit = 99999, Start = 0 }; 
+        var response = await InfiniApi.GetCardList(request);
+        if (response.IsSuccessStatusCode && response.Content?.success == true)
+        {
+            allCards = response.Content.data ?? new();
+        }
+        else
+        {
+            allCards = new();
+        }
+        UpdateVisibleCards();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private void NextPage()
+    {
+        if ((currentPage * pageSize) < allCards.Count)
+        {
+            currentPage++;
+            UpdateVisibleCards();
+        }
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            UpdateVisibleCards();
+        }
+    }
+
+    private void ClearFilter()
+    {
+        filterText = string.Empty;
+        UpdateVisibleCards();
+    }
+}
+
+

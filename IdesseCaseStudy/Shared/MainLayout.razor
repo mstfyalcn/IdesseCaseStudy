@@ -1,0 +1,124 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@inject IdesseCaseStudy.Services.UserStateService UserState
+
+<style>
+    .transition-menu {
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .transition-body {
+        transition: margin-left 0.3s ease-in-out;
+    }
+
+    .with-menu {
+        margin-left: 280px; /* Menü genişliği kadar */
+    }
+
+    .full-width {
+        margin-left: 0;
+    }
+</style>
+
+@if (UserState.IsLoggedIn && UserState.CurrentUser != null)
+{
+    <button class="btn btn-light position-fixed top-0 start-0 m-3 shadow zindex-tooltip"
+            style="z-index: 1051;"
+            @onclick="ToggleMenu">
+        <i class="bi bi-list fs-3"></i>
+    </button>
+    <div class="d-flex vh-100">
+        
+        <!-- Sol Menü -->
+        <div class="position-fixed top-0 start-0 h-100 bg-white shadow-sm p-3 transition-menu"
+             style="width: 280px; z-index: 1050; transform:@(isMenuOpen ? "translateX(0)" : "translateX(-100%)");"
+             @onclick:stopPropagation="true">
+ 
+
+            <!-- Kullanıcı -->
+            <div class="d-flex align-items-center mt-5 pt-3 ms-4">
+                <i class="bi bi-person-circle fs-2 me-2 text-secondary"></i>
+                <div>
+                    <div class="fw-bold text-success">@UserState.CurrentUser.FullName</div>
+                    <div class="text-muted" style="font-size: 0.85rem;">
+                        @UserState.CurrentUser.PositionDescription
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Menü -->
+            <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-house-door me-2"></i>Ana Sayfa</a></li>
+                <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-calendar me-2"></i>Takvim</a></li>
+                <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-cart me-2"></i>Sipariş</a></li>
+                <li class="nav-item"><a class="nav-link" href="/persons"><i class="bi bi-people me-2"></i>Kişiler</a></li>
+                <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-building me-2"></i>Üniteler</a></li>
+                <li class="nav-item"><a class="nav-link" href="/home" #"><i class="bi bi-layers me-2"></i>CLM</a></li>
+                <li class="nav-item"><a class="nav-link" href="/home"><i class="bi bi-gear me-2"></i>Ayarlar</a></li>
+            </ul>
+
+            <!-- Alt -->
+            <div class="mt-auto pt-4">
+                <div class="mt-2">
+                    <a href="#" class="text-danger fw-bold" @onclick="Logout"><i class="bi bi-power me-1"></i>Çıkış Yap</a>
+                </div>
+                <div class="text-muted small mt-1">v5.7.2 – demo2</div>
+            </div>
+        </div>
+
+
+        <!-- İçerik -->
+        <div class="@BodyContainerClass">
+            @Body
+        </div>
+    </div>
+}
+else
+{
+    <div class="main">
+        <div class="content px-4">
+            @Body
+        </div>
+    </div>
+}
+
+@code {
+    private bool _hasRedirected = false;
+    bool isMenuOpen = true;
+    string BodyContainerClass =>
+    $"flex-fill bg-light p-4 overflow-auto transition-body {(isMenuOpen ? "with-menu" : "full-width")}";
+
+    void ToggleMenu()
+    {
+        isMenuOpen = !isMenuOpen;
+    }
+    void CloseMenu()
+    {
+        isMenuOpen = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasRedirected)
+        {
+            _hasRedirected = true;
+
+            var currentUrl = Nav.Uri;
+            var isLoginPage = currentUrl.Contains("/login");
+
+            if (!UserState.IsLoggedIn && !isLoginPage)
+            {
+                Nav.NavigateTo("/login", forceLoad: true);
+            }
+        }
+    }
+
+    void Logout()
+    {
+        UserState.Clear();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+     
+}
