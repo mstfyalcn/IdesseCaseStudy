@@ -16,7 +16,8 @@
 
     @if (!string.IsNullOrWhiteSpace(filterText))
     {
-        <button type="button" class="btn btn-sm btn-light position-absolute end-0 top-50 translate-middle-y me-2 clear-filter-btn"
+        <button type="button" class="btn btn-sm btn-light position-absolute end-0 top-50 translate-middle-y me-2"
+                style="z-index: 2;"
                 @onclick="ClearFilter">
             ×
         </button>
